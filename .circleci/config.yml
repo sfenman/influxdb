@@ -88,7 +88,8 @@ jobs:
             if [ -n "$NOASM" ]; then
               TAGS="$TAGS,noasm"
             fi
-            PKG_CONFIG="$GOPATH/bin/pkg-config" go build -tags "$TAGS" \
+            PKG_CONFIG="$GOPATH/bin/pkg-config" CC=musl-gcc go build \
+              -tags "$TAGS" \
               -buildmode pie \
               -ldflags "-s -w -X main.version=dev -X main.commit=$(git rev-parse --short HEAD) -X main.date=$(date -u +'%Y-%m-%dT%H:%M:%SZ') -extldflags '-fno-PIC -static -Wl,-z,stack-size=8388608'" \
               ./cmd/influxd/
