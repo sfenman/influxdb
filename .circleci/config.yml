@@ -16,6 +16,7 @@ executors:
     working_directory: /home/circleci/go/src/github.com/influxdata/influxdb
     environment:
       RUST_TARGET: aarch64-unknown-linux-musl
+      NOASM: 1
 
 workflows:
   version: 2
@@ -73,19 +74,26 @@ jobs:
             sudo apt-get install -y --no-install-recommends musl-tools
             rustup target add ${RUST_TARGET}
       - run:
-          name: Install goreleaser
-          environment:
-            - GORELEASER_VERSION: 0.164.0
-          command: |
-            curl -sfL -o goreleaser-install https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh
-            sh goreleaser-install -b ${GOPATH}/bin v${GORELEASER_VERSION}
-            rm goreleaser-install
-      - run:
           name: Install pkg-config wrapper
           command: make pkg-config
       - run:
+          name: Generate assets
+          command: make generate
+      - run:
           name: Build static binary
-          command: goreleaser build --snapshot --single-target
+          command: |
+            TAGS=osusergo,netgo,static_build
+            LDFLAGS=(
+              -s -w
+              -X main.version=dev
+              -X "main.commit=$(git rev-parse --short HEAD)"
+              -X "main.date=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')"
+              -extldflags '"-fno-PIC -static -Wl,-z,stack-size=8388608"'
+            )
+            if [ -n "$NOASM" ]; then
+              TAGS="$TAGS,noasm"
+            fi
+            PKG_CONFIG="$GOPATH/bin/pkg-config" go build -tags "$TAGS" -buildmode pie -ldflags "${LDFLAGS[@]" ./cmd/influxd/
       - store_artifacts:
           path: dist
 
@@ -98,6 +106,16 @@ jobs:
     steps:
       - checkout
       - linux-setup
+      - run:
+          name: Download gotestsum
+          command: |
+            GOTESTSUM_VERSION=1.6.4
+            GOTESTSUM_ARCHIVE=gotestsum_${GOTESTSUM_VERSION}_$(go env GOOS)_$(go env GOARCH).tar.gz
+            GOTESTSUM_URL=https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_VERSION}/${GOTESTSUM_ARCHIVE}
+
+            wget ${GOTESTSUM_URL}
+            tar xzf ${GOTESTSUM_ARCHIVE}
+            install gotestsum ${GOPATH}/bin
       - run:
           name: Run race tests
           command: |
