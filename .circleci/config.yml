@@ -7,6 +7,7 @@ executors:
     resource_class: large
     environment:
       GO111MODULE: on
+      GO_VERSION: 1.15.12
       RUST_TARGET: x86_64-unknown-linux-musl
 
   arm64:
@@ -15,6 +16,7 @@ executors:
     resource_class: arm.large
     environment:
       GO111MODULE: on
+      GO_VERSION: 1.15.12
       RUST_TARGET: aarch64-unknown-linux-musl
       NOASM: 1
 
@@ -24,6 +26,7 @@ executors:
     resource_class: medium
     environment:
       GO111MODULE: on
+      GO_VERSION: 1.15.12
 
 #  windows:
 #    machine:
@@ -41,9 +44,7 @@ workflows:
               executor:
                 - amd64
                 - arm64
-
       - build-mac
-
       - test-linux:
           matrix:
             parameters:
@@ -79,6 +80,14 @@ commands:
               libprotobuf-dev \
               pkg-config \
               protobuf-compiler
+      - run:
+          name: Install Go
+          command: |
+            ARCHIVE=${GO_VERSION}.linux-$(dpkg --print-architecture).tar.gz
+            wget https://golang.org/dl/${ARCHIVE}
+            tar -C /usr/local/go -xzf ${ARCHIVE}
+            rm ${ARCHIVE}
+            echo 'export PATH=/usr/local/go/bin:${PATH}' >> $BASH_ENV
       - setup-common
 
   setup-mac:
@@ -89,10 +98,18 @@ commands:
             brew update
             brew install \
               bazaar \
-              clang \
               make \
               pkg-config \
               protobuf \
+              wget
+      - run:
+          name: Install Go
+          command: |
+            ARCHIVE=${GO_VERSION}.darwin-amd64.tar.gz
+            wget https://golang.org/dl/${ARCHIVE}
+            tar -C /usr/local/go -xzf ${ARCHIVE}
+            rm ${ARCHIVE}
+            echo 'export PATH=/usr/local/go/bin:${PATH}' >> $BASH_ENV
       - setup-common
 
 jobs:
