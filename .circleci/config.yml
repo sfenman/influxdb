@@ -20,8 +20,7 @@ executors:
 
   mac:
     macos:
-      # 12.0.0-beta is specifically recommended for cross-building to Apple silicon
-      xcode: 12.0.0-beta
+      xcode: 12.4.0
     resource_class: medium
     working_directory: /home/circleci/go/src/github.com/influxdata/influxdb
 
