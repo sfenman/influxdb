@@ -5,24 +5,25 @@ executors:
     machine:
       image: ubuntu-2004:202104-01
     resource_class: large
-    working_directory: /home/circleci/go/src/github.com/influxdata/influxdb
     environment:
-      #RUST_TARGET: x86_64-unknown-linux-musl
+      GO111MODULE: on
+      RUST_TARGET: x86_64-unknown-linux-musl
 
   arm64:
     machine:
       image: ubuntu-2004:202104-01
     resource_class: arm.large
-    working_directory: /home/circleci/go/src/github.com/influxdata/influxdb
     environment:
-      #RUST_TARGET: aarch64-unknown-linux-musl
+      GO111MODULE: on
+      RUST_TARGET: aarch64-unknown-linux-musl
       NOASM: 1
 
   mac:
     macos:
       xcode: 12.4.0
     resource_class: medium
-    working_directory: /home/circleci/go/src/github.com/influxdata/influxdb
+    environment:
+      GO111MODULE: on
 
 #  windows:
 #    machine:
