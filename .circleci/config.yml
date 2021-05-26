@@ -95,7 +95,7 @@ jobs:
               -X "main.date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
               -extldflags '"-fno-PIC -static -Wl,-z,stack-size=8388608"'
             )
-            PKG_CONFIG="$GOPATH/bin/pkg-config" go build -tags "$TAGS" -buildmode pie -ldflags "${LDFLAGS[@]}" ./cmd/influxd/
+            PKG_CONFIG="$GOPATH/bin/pkg-config" go build -tags "$TAGS" -buildmode pie -ldflags "'${LDFLAGS[@]}'" ./cmd/influxd/
       - store_artifacts:
           path: dist
 
