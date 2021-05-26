@@ -88,14 +88,10 @@ jobs:
             if [ -n "$NOASM" ]; then
               TAGS="$TAGS,noasm"
             fi
-            LDFLAGS=(
-              -s -w
-              -X main.version=dev
-              -X "main.commit=$(git rev-parse --short HEAD)"
-              -X "main.date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-              -extldflags '"-fno-PIC -static -Wl,-z,stack-size=8388608"'
-            )
-            PKG_CONFIG="$GOPATH/bin/pkg-config" go build -tags "$TAGS" -buildmode pie -ldflags "'${LDFLAGS[@]}'" ./cmd/influxd/
+            PKG_CONFIG="$GOPATH/bin/pkg-config" go build -tags "$TAGS" \
+              -buildmode pie \
+              -ldflags "-s -w -X main.version=dev -X main.commit=$(git rev-parse --short HEAD) -X main.date=$(date -u +'%Y-%m-%dT%H:%M:%SZ') -extldflags '-fno-PIC -static -Wl,-z,stack-size=8388608'" \
+              ./cmd/influxd/
       - store_artifacts:
           path: dist
 
@@ -121,6 +117,7 @@ jobs:
       - run:
           name: Run race tests
           command: |
+            mkdir -p /tmp/test-results
             GO_TEST_CMD="gotestsum --format standard-quiet --junitfile /tmp/test-results/gotestsum.xml -- -p=4"
             TESTFILES=($(go list ./... | circleci tests split --split-by=timings))
             make GO_TEST_CMD="$GO_TEST_CMD" GO_TEST_PATHS="${TESTFILES[*]}" test-go-race
