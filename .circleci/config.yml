@@ -87,6 +87,7 @@ commands:
             wget https://golang.org/dl/${ARCHIVE}
             tar -C /usr/local/go -xzf ${ARCHIVE}
             rm ${ARCHIVE}
+            ls /usr/local/go/bin
             echo 'export PATH=/usr/local/go/bin:${PATH}' >> $BASH_ENV
       - setup-common
 
@@ -96,7 +97,9 @@ commands:
           name: Install system dependencies
           command: |
             brew update
-            brew install -f \
+            brew uninstall python@3.9
+            brew cleanup
+            brew install \
               bazaar \
               pkg-config \
               protobuf \
