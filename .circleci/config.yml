@@ -1,42 +1,58 @@
 version: 2.1
 
 executors:
-  linux-amd64:
+  amd64:
     machine:
       image: ubuntu-2004:202104-01
     resource_class: large
     working_directory: /home/circleci/go/src/github.com/influxdata/influxdb
     environment:
-      RUST_TARGET: x86_64-unknown-linux-musl
+      #RUST_TARGET: x86_64-unknown-linux-musl
 
-  linux-arm64:
+  arm64:
     machine:
       image: ubuntu-2004:202104-01
     resource_class: arm.large
     working_directory: /home/circleci/go/src/github.com/influxdata/influxdb
     environment:
-      RUST_TARGET: aarch64-unknown-linux-musl
+      #RUST_TARGET: aarch64-unknown-linux-musl
       NOASM: 1
+
+  mac:
+    macos:
+      # 12.0.0-beta is specifically recommended for cross-building to Apple silicon
+      xcode: 12.0.0-beta
+    resource_class: medium
+    working_directory: /home/circleci/go/src/github.com/influxdata/influxdb
+
+#  windows:
+#    machine:
+#      image: windows-server-2019-vs2019:stable
+#      resource_class: windows.medium
+#      shell: bash.exe
 
 workflows:
   version: 2
-  build:
+  build-linux:
     jobs:
-      - build:
+      - build-linux:
           matrix:
             parameters:
               executor:
-                - linux-amd64
-                - linux-arm64
-      - test:
+                - amd64
+                - arm64
+
+      - build-mac
+
+      - test-linux:
           matrix:
             parameters:
               executor:
-                - linux-amd64
-                - linux-arm64
+                - amd64
+                - arm64
 
 commands:
-  linux-setup:
+  setup-common:
     steps:
       - run:
           name: Set GOPATH
@@ -45,6 +61,14 @@ commands:
             echo "export GOPATH=${GOPATH}" >> $BASH_ENV
             mkdir -p ${GOPATH}/bin
             echo 'export PATH=${GOPATH}/bin:${PATH}' >> $BASH_ENV
+      - run:
+          name: Install Rust toolchain
+          command: |
+            curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+            echo 'export PATH=${HOME}/.cargo/bin:${PATH}' >> $BASH_ENV
+
+  setup-linux:
+    steps:
       - run:
           name: Install system dependencies
           command: |
@@ -55,21 +79,31 @@ commands:
               libprotobuf-dev \
               pkg-config \
               protobuf-compiler
+      - setup-common
+
+  setup-mac:
+    steps:
       - run:
-          name: Install Rust toolchain
+          name: Install system dependencies
           command: |
-            curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
-            echo 'export PATH=${HOME}/.cargo/bin:${PATH}' >> $BASH_ENV
+            brew update
+            brew install \
+              bazaar \
+              clang \
+              make \
+              pkg-config \
+              protobuf \
+      - setup-common
 
 jobs:
-  build:
+  build-linux:
     parameters:
       executor:
         type: executor
     executor: << parameters.executor >>
     steps:
       - checkout
-      - linux-setup
+      - setup-linux
       - run:
           name: Install static build dependencies
           command: |
@@ -82,21 +116,52 @@ jobs:
           name: Generate assets
           command: make generate
       - run:
-          name: Build static binary
+          name: Build release binary
           command: |
-            TAGS=osusergo,netgo,static_build
+            TAGS=osusergo,netgo,static_build,assets
             if [ -n "$NOASM" ]; then
               TAGS="$TAGS,noasm"
             fi
+            DEST=dist/inflxud_linux_$(go env GOARCH)
+            mkdir -p "$DEST"
+
             PKG_CONFIG="$GOPATH/bin/pkg-config" CC=musl-gcc go build \
               -tags "$TAGS" \
               -buildmode pie \
               -ldflags "-s -w -X main.version=dev -X main.commit=$(git rev-parse --short HEAD) -X main.date=$(date -u +'%Y-%m-%dT%H:%M:%SZ') -extldflags '-fno-PIC -static -Wl,-z,stack-size=8388608'" \
+              -o "${DEST}/" \
               ./cmd/influxd/
       - store_artifacts:
           path: dist
 
-  test:
+  build-mac:
+    executor:
+      name: mac
+    steps:
+      - checkout
+      - setup-mac
+      - run:
+          name: Install pkg-config wrapper
+          command: make pkg-config
+      - run:
+          name: Generate assets
+          command: make generate
+      - run:
+          name: Build release binary
+          command: |
+            DEST=dist/inflxud_darwin_amd64
+            mkdir -p "$DEST"
+
+            PKG_CONFIG="$GOPATH/bin/pkg-config" go build \
+              -tags assets\
+              -buildmode pie \
+              -ldflags "-s -w -X main.version=dev -X main.commit=$(git rev-parse --short HEAD) -X main.date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+              -o "${DEST}/" \
+              ./cmd/influxd/
+      - store_artifacts:
+          path: dist
+
+  test-linux:
     parameters:
       executor:
         type: executor
@@ -104,7 +169,7 @@ jobs:
     parallelism: 8
     steps:
       - checkout
-      - linux-setup
+      - setup-linux
       - run:
           name: Download gotestsum
           command: |
