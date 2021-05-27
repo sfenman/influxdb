@@ -115,6 +115,7 @@ commands:
           command: |
             ARCHIVE=go${GO_VERSION}.darwin-amd64.tar.gz
             wget https://golang.org/dl/${ARCHIVE}
+            mkdir -p /usr/local/go
             tar -C /usr/local/go -xzf ${ARCHIVE}
             rm ${ARCHIVE}
             echo 'export PATH=/usr/local/go/bin:${PATH}' >> $BASH_ENV
@@ -136,10 +137,7 @@ jobs:
             rustup target add ${RUST_TARGET}
       - run:
           name: Install pkg-config wrapper
-          command: |
-            echo "$PATH"
-            which go
-            make pkg-config
+          command: go build -o "${GOPATH}/bin/pkg-config" github.com/influxdata/pkg-config
       - run:
           name: Generate assets
           command: make generate
@@ -170,9 +168,7 @@ jobs:
       - setup-mac
       - run:
           name: Install pkg-config wrapper
-          command: |
-            go version
-            make pkg-config
+          command: go build -o "${GOPATH}/bin/pkg-config" github.com/influxdata/pkg-config
       - run:
           name: Generate assets
           command: make generate
