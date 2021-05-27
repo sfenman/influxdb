@@ -115,9 +115,10 @@ commands:
           command: |
             ARCHIVE=go${GO_VERSION}.darwin-amd64.tar.gz
             wget https://golang.org/dl/${ARCHIVE}
-            sudo tar -C /usr/local/go -xzf ${ARCHIVE}
+            mkdir -p ${HOME}/.tools/go
+            tar -C ${HOME}/.tools/go -xzf ${ARCHIVE}
             rm ${ARCHIVE}
-            echo 'export PATH=/usr/local/go/bin:${PATH}' >> $BASH_ENV
+            echo 'export PATH=${HOME}/.tools/go/bin:${PATH}' >> $BASH_ENV
       - setup-common
 
 jobs:
