@@ -87,7 +87,6 @@ commands:
             wget https://golang.org/dl/${ARCHIVE}
             tar -C /usr/local/go -xzf ${ARCHIVE}
             rm ${ARCHIVE}
-            ls /usr/local/go/bin
             echo 'export PATH=/usr/local/go/bin:${PATH}' >> $BASH_ENV
       - setup-common
 
@@ -97,8 +96,15 @@ commands:
           name: Install system dependencies
           command: |
             brew update
-            brew uninstall python@3.9
-            brew cleanup
+
+            # `python@3.9` comes pre-installed on the macOS executor, and it includes the `six` package.
+            # The protobuf formula hasn't caught up yet, and depends on the standalone `six` formula.
+            # Attempting to install the `six` formula alongside `python@3.9` causes a linking error because
+            # brew doesn't overwrite existing files.
+            #
+            # The brew help-text suggests deleting the conflicting file before running the `install`.
+            rm '/usr/local/lib/python3.9/site-packages/six.py'
+
             brew install \
               bazaar \
               pkg-config \
@@ -131,7 +137,8 @@ jobs:
       - run:
           name: Install pkg-config wrapper
           command: |
-            go version
+            echo "$PATH"
+            which go
             make pkg-config
       - run:
           name: Generate assets
