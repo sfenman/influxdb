@@ -52,6 +52,7 @@ workflows:
               executor:
                 - amd64
                 - arm64
+      - test-mac
 
 commands:
   setup-common:
@@ -121,6 +122,31 @@ commands:
             rm ${ARCHIVE}
             echo 'export PATH=${HOME}/.tools/go/bin:${PATH}' >> $BASH_ENV
       - setup-common
+
+  run-tests:
+    steps:
+      - run:
+          name: Download gotestsum
+          command: |
+            GOTESTSUM_VERSION=1.6.4
+            GOTESTSUM_ARCHIVE=gotestsum_${GOTESTSUM_VERSION}_$(go env GOOS)_$(go env GOARCH).tar.gz
+            GOTESTSUM_URL=https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_VERSION}/${GOTESTSUM_ARCHIVE}
+
+            wget ${GOTESTSUM_URL}
+            tar xzf ${GOTESTSUM_ARCHIVE}
+            install gotestsum ${GOPATH}/bin/
+      - run:
+          name: Run race tests
+          command: |
+            mkdir -p /tmp/test-results
+            GO_TEST_CMD="gotestsum --format standard-quiet --junitfile /tmp/test-results/gotestsum.xml -- -p=4"
+            TESTFILES=($(go list ./... | circleci tests split --split-by=timings))
+            make GO_TEST_CMD="$GO_TEST_CMD" GO_TEST_PATHS="${TESTFILES[*]}" test-go-race
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: raw-test-output
+      - store_test_results:
+          path: /tmp/test-results
 
 jobs:
   build-linux:
@@ -197,25 +223,13 @@ jobs:
     steps:
       - checkout
       - setup-linux
-      - run:
-          name: Download gotestsum
-          command: |
-            GOTESTSUM_VERSION=1.6.4
-            GOTESTSUM_ARCHIVE=gotestsum_${GOTESTSUM_VERSION}_$(go env GOOS)_$(go env GOARCH).tar.gz
-            GOTESTSUM_URL=https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_VERSION}/${GOTESTSUM_ARCHIVE}
+      - run-tests
 
-            wget ${GOTESTSUM_URL}
-            tar xzf ${GOTESTSUM_ARCHIVE}
-            install gotestsum ${GOPATH}/bin/
-      - run:
-          name: Run race tests
-          command: |
-            mkdir -p /tmp/test-results
-            GO_TEST_CMD="gotestsum --format standard-quiet --junitfile /tmp/test-results/gotestsum.xml -- -p=4"
-            TESTFILES=($(go list ./... | circleci tests split --split-by=timings))
-            make GO_TEST_CMD="$GO_TEST_CMD" GO_TEST_PATHS="${TESTFILES[*]}" test-go-race
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: raw-test-output
-      - store_test_results:
-          path: /tmp/test-results
+  test-mac:
+    executor:
+      name: mac
+    parallelism: 8
+    steps:
+      - checkout
+      - setup-mac
+      - run-tests
