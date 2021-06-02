@@ -96,7 +96,7 @@ commands:
           name: Check bash env
           command: |
             echo $BASH_ENV
-            if [[ -n "$BASH_ENV" ]]; then
+            if [[ -f "$BASH_ENV" ]]; then
               cat $BASH_ENV
             fi
             ls -a ${HOME}
