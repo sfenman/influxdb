@@ -95,11 +95,13 @@ commands:
       - run:
           name: Check bash env
           command: |
-            echo $BASH_ENV
-            if [[ -f "$BASH_ENV" ]]; then
-              cat $BASH_ENV
-            fi
-            ls -a ${HOME}
+            echo $0
+            echo env: $BASH_ENV
+            echo .bashrc:
+            cat ${HOME}/.bashrc
+            echo .bash_profile:
+            cat ${HOME}/.bash_profile
+            echo .zshrc
       - run:
           name: Install system dependencies
           command: |
