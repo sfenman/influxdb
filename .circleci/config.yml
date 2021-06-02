@@ -94,16 +94,9 @@ commands:
   setup-mac:
     steps:
       - run:
-          name: Check bash env
+          name: Setup bash-env debug
           command: |
-            echo $0
-            echo env: $BASH_ENV
-            echo .bashrc:
-            cat ${HOME}/.bashrc
-            echo .bash_profile:
-            cat ${HOME}/.bash_profile
-            echo .zshrc
-            cat ${HOME}/.zshrc
+            echo 'echo $BASH_ENV was sourced!' >> $BASH_ENV
       - run:
           name: Install system dependencies
           command: |
@@ -180,7 +173,9 @@ jobs:
       - setup-mac
       - run:
           name: Install pkg-config wrapper
-          command: go build -o "${GOPATH}/bin/pkg-config" github.com/influxdata/pkg-config
+          command: |
+            env
+            go build -o "${GOPATH}/bin/pkg-config" github.com/influxdata/pkg-config
       - run:
           name: Generate assets
           command: make generate
