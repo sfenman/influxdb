@@ -116,9 +116,8 @@ commands:
           command: |
             ARCHIVE=go${GO_VERSION}.darwin-amd64.tar.gz
             wget https://golang.org/dl/${ARCHIVE}
-            mkdir -p ${HOME}/.tools/go
-            tar -C ${HOME}/.tools/go -xzf ${ARCHIVE}
-            ls ${HOME}/.tools/go
+            mkdir -p ${HOME}/.tools
+            tar -C ${HOME}/.tools -xzf ${ARCHIVE}
             rm ${ARCHIVE}
             echo 'export PATH=${HOME}/.tools/go/bin:${PATH}' >> $BASH_ENV
       - setup-common
@@ -150,7 +149,7 @@ jobs:
             if [ -n "$NOASM" ]; then
               TAGS="$TAGS,noasm"
             fi
-            DEST=dist/inflxud_linux_$(go env GOARCH)
+            DEST=dist/influxd_linux_$(go env GOARCH)
             mkdir -p "$DEST"
 
             PKG_CONFIG="$GOPATH/bin/pkg-config" CC=musl-gcc go build \
@@ -177,11 +176,11 @@ jobs:
       - run:
           name: Build release binary
           command: |
-            DEST=dist/inflxud_darwin_amd64
+            DEST=dist/influxd_darwin_amd64
             mkdir -p "$DEST"
 
             PKG_CONFIG="$GOPATH/bin/pkg-config" go build \
-              -tags assets\
+              -tags assets \
               -buildmode pie \
               -ldflags "-s -w -X main.version=dev -X main.commit=$(git rev-parse --short HEAD) -X main.date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
               -o "${DEST}/" \
