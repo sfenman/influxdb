@@ -27,6 +27,7 @@ executors:
     environment:
       GO111MODULE: "on"
       GO_VERSION: 1.15.12
+    shell: /bin/bash -eo pipefail
 
 #  windows:
 #    machine:
@@ -102,6 +103,7 @@ commands:
             echo .bash_profile:
             cat ${HOME}/.bash_profile
             echo .zshrc
+            cat ${HOME}/.zshrc
       - run:
           name: Install system dependencies
           command: |
