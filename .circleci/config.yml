@@ -94,10 +94,6 @@ commands:
   setup-mac:
     steps:
       - run:
-          name: Setup bash-env debug
-          command: |
-            echo 'echo $BASH_ENV was sourced!' >> $BASH_ENV
-      - run:
           name: Install system dependencies
           command: |
             brew update
@@ -122,6 +118,7 @@ commands:
             wget https://golang.org/dl/${ARCHIVE}
             mkdir -p ${HOME}/.tools/go
             tar -C ${HOME}/.tools/go -xzf ${ARCHIVE}
+            ls ${HOME}/.tools/go
             rm ${ARCHIVE}
             echo 'export PATH=${HOME}/.tools/go/bin:${PATH}' >> $BASH_ENV
       - setup-common
@@ -173,9 +170,7 @@ jobs:
       - setup-mac
       - run:
           name: Install pkg-config wrapper
-          command: |
-            env
-            go build -o "${GOPATH}/bin/pkg-config" github.com/influxdata/pkg-config
+          command: go build -o "${GOPATH}/bin/pkg-config" github.com/influxdata/pkg-config
       - run:
           name: Generate assets
           command: make generate
