@@ -91,7 +91,7 @@ jobs:
       - setup
       - run:
           name: Install pkg-config wrapper
-          command: go build -o "${GOPATH}/bin/pkg-config" github.com/influxdata/pkg-config
+          command: go build -o "${GOPATH}/bin/" github.com/influxdata/pkg-config
       - run:
           name: Generate assets
           command: make generate

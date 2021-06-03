@@ -20,7 +20,7 @@ function install_go_mac () {
 function install_go_windows () {
     ARCHIVE=go${GO_VERSION}.windows-amd64.zip
     wget https://golang.org/dl/${ARCHIVE}
-    unzip -d $1 ${ARCHIVE}
+    unzip -qq -d $1 ${ARCHIVE}
     rm ${ARCHIVE}
 }
 
