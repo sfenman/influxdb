@@ -7,6 +7,7 @@ function setup_linux () {
         bzr \
         clang \
         libprotobuf-dev \
+        musl-tools \
         pkg-config \
         protobuf-compiler
 }
@@ -37,6 +38,7 @@ function setup_windows () {
         bzr \
         llvm \
         make \
+        mingw \
         pkgconfiglite \
         protoc \
         wget

@@ -77,7 +77,7 @@ commands:
       - run:
           name: Install Rust toolchain
           command: |
-            curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+            ./scripts/ci/install-rust.sh
             echo 'export PATH=${HOME}/.cargo/bin:${PATH}' >> $BASH_ENV
 
 jobs:
@@ -89,9 +89,6 @@ jobs:
     steps:
       - checkout
       - setup
-      - run:
-          name: Install release-build dependencies
-          command: ./scripts/ci/setup-releasebuild-deps.sh
       - run:
           name: Install pkg-config wrapper
           command: go build -o "${GOPATH}/bin/pkg-config" github.com/influxdata/pkg-config
