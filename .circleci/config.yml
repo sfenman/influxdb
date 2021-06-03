@@ -1,7 +1,7 @@
 version: 2.1
 
 executors:
-  amd64:
+  linux-amd64:
     machine:
       image: ubuntu-2004:202104-01
     resource_class: large
@@ -10,7 +10,7 @@ executors:
       GO_VERSION: 1.15.12
       RUST_TARGET: x86_64-unknown-linux-musl
 
-  arm64:
+  linux-arm64:
     machine:
       image: ubuntu-2004:202104-01
     resource_class: arm.large
@@ -39,32 +39,34 @@ workflows:
   version: 2
   build-linux:
     jobs:
-      - check-system:
+      - build:
           matrix:
             parameters:
               executor:
-                - amd64
-                - arm64
+                - linux-amd64
+                - linux-arm64
                 - mac
                 - windows
-      - build-linux:
+      - test:
           matrix:
             parameters:
               executor:
-                - amd64
-                - arm64
-      - build-mac
-      - test-linux:
-          matrix:
-            parameters:
-              executor:
-                - amd64
-                - arm64
-      - test-mac
+                - linux-amd64
+                - linux-arm64
+                - mac
+                - windows
 
 commands:
-  setup-common:
+  setup:
     steps:
+      - run:
+          name: Install system dependencies
+          command: ./scripts/ci/setup-system.sh
+      - run:
+          name: Install Go
+          command: |
+            ./scripts/ci/install-go.sh ${HOME}/.tools
+            echo 'export PATH=${HOME}/.tools/go/bin:${PATH}' >> $BASH_ENV
       - run:
           name: Set GOPATH
           command: |
@@ -78,61 +80,46 @@ commands:
             curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
             echo 'export PATH=${HOME}/.cargo/bin:${PATH}' >> $BASH_ENV
 
-  setup-linux:
+jobs:
+  build:
+    parameters:
+      executor:
+        type: executor
+    executor: << parameters.executor >>
     steps:
+      - checkout
+      - setup
       - run:
-          name: Install system dependencies
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends \
-              bzr \
-              clang \
-              libprotobuf-dev \
-              pkg-config \
-              protobuf-compiler
+          name: Install static build dependencies
+          command: ./scripts/ci/setup-static-system.sh
       - run:
-          name: Install Go
+          name: Install pkg-config wrapper
+          command: go build -o "${GOPATH}/bin/pkg-config" github.com/influxdata/pkg-config
+      - run:
+          name: Generate assets
+          command: make generate
+      - run:
+          name: Build release binary
           command: |
-            ARCHIVE=go${GO_VERSION}.linux-$(dpkg --print-architecture).tar.gz
-            wget https://golang.org/dl/${ARCHIVE}
-            tar -C /usr/local/go -xzf ${ARCHIVE}
-            rm ${ARCHIVE}
-            echo 'export PATH=/usr/local/go/bin:${PATH}' >> $BASH_ENV
-      - setup-common
+            DEST=dist/influxd_$(go env GOOS)_$(go env GOARCH)
+            mkdir -p "$DEST"
+            ./scripts/ci/build-influxd.sh "$DEST"
+      - store_artifacts:
+          path: dist
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
 
-  setup-mac:
+  test:
+    parameters:
+      executor:
+        type: executor
+    executor: << parameters.executor >>
+    parallelism: 8
     steps:
-      - run:
-          name: Install system dependencies
-          command: |
-            brew update
-
-            # `python@3.9` comes pre-installed on the macOS executor, and it includes the `six` package.
-            # The protobuf formula hasn't caught up yet, and depends on the standalone `six` formula.
-            # Attempting to install the `six` formula alongside `python@3.9` causes a linking error because
-            # brew doesn't overwrite existing files.
-            #
-            # The brew help-text suggests deleting the conflicting file before running the `install`.
-            rm '/usr/local/lib/python3.9/site-packages/six.py'
-
-            brew install \
-              bazaar \
-              pkg-config \
-              protobuf \
-              wget
-      - run:
-          name: Install Go
-          command: |
-            ARCHIVE=go${GO_VERSION}.darwin-amd64.tar.gz
-            wget https://golang.org/dl/${ARCHIVE}
-            mkdir -p ${HOME}/.tools
-            tar -C ${HOME}/.tools -xzf ${ARCHIVE}
-            rm ${ARCHIVE}
-            echo 'export PATH=${HOME}/.tools/go/bin:${PATH}' >> $BASH_ENV
-      - setup-common
-
-  run-tests:
-    steps:
+      - checkout
+      - setup
       - run:
           name: Download gotestsum
           command: |
@@ -155,114 +142,3 @@ commands:
           destination: raw-test-output
       - store_test_results:
           path: /tmp/test-results
-
-jobs:
-  check-system:
-    parameters:
-      executor:
-        type: executor
-    executor: << parameters.executor >>
-    steps:
-      - run:
-          name: Check uname output
-          command: |
-            set -x
-            uname
-            uname -m
-            uname -n
-            uname -p
-            uname -r
-            uname -s
-            uname -v
-  build-linux:
-    parameters:
-      executor:
-        type: executor
-    executor: << parameters.executor >>
-    steps:
-      - checkout
-      - setup-linux
-      - run:
-          name: Install static build dependencies
-          command: |
-            sudo apt-get install -y --no-install-recommends musl-tools
-            rustup target add ${RUST_TARGET}
-      - run:
-          name: Install pkg-config wrapper
-          command: go build -o "${GOPATH}/bin/pkg-config" github.com/influxdata/pkg-config
-      - run:
-          name: Generate assets
-          command: make generate
-      - run:
-          name: Build release binary
-          command: |
-            TAGS=osusergo,netgo,static_build,assets
-            if [ -n "$NOASM" ]; then
-              TAGS="$TAGS,noasm"
-            fi
-            DEST=dist/influxd_linux_$(go env GOARCH)
-            mkdir -p "$DEST"
-
-            PKG_CONFIG="$GOPATH/bin/pkg-config" CC=musl-gcc go build \
-              -tags "$TAGS" \
-              -buildmode pie \
-              -ldflags "-s -w -X main.version=dev -X main.commit=$(git rev-parse --short HEAD) -X main.date=$(date -u +'%Y-%m-%dT%H:%M:%SZ') -extldflags '-fno-PIC -static -Wl,-z,stack-size=8388608'" \
-              -o "${DEST}/" \
-              ./cmd/influxd/
-      - store_artifacts:
-          path: dist
-      - persist_to_workspace:
-          root: .
-          paths:
-            - dist
-
-  build-mac:
-    executor:
-      name: mac
-    steps:
-      - checkout
-      - setup-mac
-      - run:
-          name: Install pkg-config wrapper
-          command: go build -o "${GOPATH}/bin/pkg-config" github.com/influxdata/pkg-config
-      - run:
-          name: Generate assets
-          command: make generate
-      - run:
-          name: Build release binary
-          command: |
-            DEST=dist/influxd_darwin_amd64
-            mkdir -p "$DEST"
-
-            PKG_CONFIG="$GOPATH/bin/pkg-config" go build \
-              -tags osusergo,netgo,static_build,assets \
-              -buildmode pie \
-              -ldflags "-s -w -X main.version=dev -X main.commit=$(git rev-parse --short HEAD) -X main.date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-              -o "${DEST}/" \
-              ./cmd/influxd/
-      - store_artifacts:
-          path: dist
-      - persist_to_workspace:
-          root: .
-          paths:
-            - dist
-
-  test-linux:
-    parameters:
-      executor:
-        type: executor
-    executor: << parameters.executor >>
-    parallelism: 8
-    steps:
-      - checkout
-      - setup-linux
-      - run-tests
-
-  test-mac:
-    executor:
-      name: mac
-    parallelism: 8
-    steps:
-      - checkout
-      - setup-mac
-      - run-tests
