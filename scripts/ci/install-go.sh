@@ -18,7 +18,10 @@ function install_go_mac () {
 }
 
 function install_go_windows () {
-    exit 1
+    ARCHIVE=go${GO_VERSION}.windows-amd64.zip
+    wget https://golang.org/dl/${ARCHIVE}
+    unzip -d $1 ${ARCHIVE}
+    rm ${ARCHIVE}
 }
 
 function main () {
@@ -29,7 +32,7 @@ function main () {
     local -r install_dir=$1
 
     rm -rf "$install_dir/go"
-    mkdir -p "$install_dir"
+    mkdir -p "$install_dir/go"
     case $(uname) in
         Linux)
             install_go_linux "$install_dir"

@@ -30,6 +30,7 @@ function main () {
             >&2 echo Error: unsupported OS $(go env GOOS)
             exit 1
             ;;
+    esac
 }
 
 main ${@}

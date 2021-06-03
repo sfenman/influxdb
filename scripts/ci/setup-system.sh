@@ -4,11 +4,11 @@ set -eo pipefail
 function setup_linux () {
     sudo apt-get update
     sudo apt-get install -y --no-install-recommends \
-      bzr \
-      clang \
-      libprotobuf-dev \
-      pkg-config \
-      protobuf-compiler
+        bzr \
+        clang \
+        libprotobuf-dev \
+        pkg-config \
+        protobuf-compiler
 }
 
 function setup_mac () {
@@ -26,14 +26,20 @@ function setup_mac () {
     fi
 
     brew install \
-      bazaar \
-      pkg-config \
-      protobuf \
-      wget
+        bazaar \
+        pkg-config \
+        protobuf \
+        wget
 }
 
 function setup_windows () {
-    exit 1
+    choco install \
+        bzr \
+        llvm \
+        mingw \
+        pkgconfiglite \
+        protoc \
+        wget
 }
 
 function main () {
