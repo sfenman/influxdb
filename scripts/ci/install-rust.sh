@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+declare -r RUSTUP=${HOME}/.cargo/bin/rustup
+
 function install_linux_target () {
-    case $(dkpg --print-architecture) in
+    case $(dpkg --print-architecture) in
         amd64)
-            rustup target add x86_64-unknown-linux-musl
+            ${RUSTUP} target add x86_64-unknown-linux-musl
             ;;
         arm64)
-            rustup target add aarch64-unknown-linux-musl
+            ${RUSTUP} target add aarch64-unknown-linux-musl
             ;;
         *)
             >&2 echo Error: unknown arch $(dpkg --print-architecture)
@@ -17,11 +19,13 @@ function install_linux_target () {
 }
 
 function install_windows_target () {
-    rustup target add x86_64-pc-windows-gnu
+    ${RUSTUP} target add x86_64-pc-windows-gnu
 }
 
 function main () {
     curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+    ${RUSTUP} --version
+
     case $(uname) in
         Linux)
             install_linux_target
@@ -37,7 +41,7 @@ function main () {
             ;;
     esac
 
-    ${HOME}/.cargo/bin/rustup --version
+    ${RUSTUP} target list --installed
 }
 
 main ${@}
