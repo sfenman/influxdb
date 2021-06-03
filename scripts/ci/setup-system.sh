@@ -36,7 +36,7 @@ function setup_windows () {
     choco install \
         bzr \
         llvm \
-        mingw \
+        make \
         pkgconfiglite \
         protoc \
         wget

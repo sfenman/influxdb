@@ -30,7 +30,12 @@ function build_mac () {
 }
 
 function build_windows () {
-
+    PKG_CONFIG=$(which pkg-config) CC=mingw64 go build \
+        -tags assets \
+        -buildmode exe \
+        -ldflags "-s -w -X main.version=dev -X main.commit=${commit} -X main.date=${build_date}" \
+        -o "${1}/" \
+        ./cmd/influxd/
 }
 
 function main () {

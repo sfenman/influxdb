@@ -6,7 +6,7 @@ declare -r GO_VERSION=1.15.12
 function install_go_linux () {
     ARCHIVE=go${GO_VERSION}.linux-$(dpkg --print-architecture).tar.gz
     wget https://golang.org/dl/${ARCHIVE}
-    tar -C $1/go -xzf ${ARCHIVE}
+    tar -C $1 -xzf ${ARCHIVE}
     rm ${ARCHIVE}
 }
 
@@ -31,8 +31,8 @@ function main () {
     fi
     local -r install_dir=$1
 
-    rm -rf "$install_dir/go"
-    mkdir -p "$install_dir/go"
+    rm -rf "$install_dir"
+    mkdir -p "$install_dir"
     case $(uname) in
         Linux)
             install_go_linux "$install_dir"

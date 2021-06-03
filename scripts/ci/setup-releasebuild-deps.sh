@@ -17,6 +17,11 @@ function setup_linux () {
     esac
 }
 
+function setup_windows () {
+    choco install mingw
+    rustup target add x86_64-pc-windows-gnu
+}
+
 function main () {
     case $(go env GOOS) in
         linux)
@@ -25,6 +30,7 @@ function main () {
         darwin)
             ;;
         windows)
+            setup_windows
             ;;
         *)
             >&2 echo Error: unsupported OS $(go env GOOS)

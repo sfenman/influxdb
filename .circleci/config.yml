@@ -90,8 +90,8 @@ jobs:
       - checkout
       - setup
       - run:
-          name: Install static build dependencies
-          command: ./scripts/ci/setup-static-system.sh
+          name: Install release-build dependencies
+          command: ./scripts/ci/setup-releasebuild-deps.sh
       - run:
           name: Install pkg-config wrapper
           command: go build -o "${GOPATH}/bin/pkg-config" github.com/influxdata/pkg-config
