@@ -29,16 +29,24 @@ executors:
       GO_VERSION: 1.15.12
     shell: /bin/bash -eo pipefail
 
-#  windows:
-#    machine:
-#      image: windows-server-2019-vs2019:stable
-#      resource_class: windows.medium
-#      shell: bash.exe
+  windows:
+    machine:
+      image: windows-server-2019-vs2019:stable
+    resource_class: windows.medium
+    shell: bash.exe -eo pipefail
 
 workflows:
   version: 2
   build-linux:
     jobs:
+      - check-system:
+          matrix:
+            parameters:
+              executor:
+                - amd64
+                - arm64
+                - mac
+                - windows
       - build-linux:
           matrix:
             parameters:
@@ -149,6 +157,23 @@ commands:
           path: /tmp/test-results
 
 jobs:
+  check-system:
+    parameters:
+      executor:
+        type: executor
+    executor: << parameters.executor >>
+    steps:
+      - run:
+          name: Check uname output
+          command: |
+            set -x
+            uname
+            uname -m
+            uname -n
+            uname -p
+            uname -r
+            uname -s
+            uname -v
   build-linux:
     parameters:
       executor:
@@ -186,6 +211,10 @@ jobs:
               ./cmd/influxd/
       - store_artifacts:
           path: dist
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
 
   build-mac:
     executor:
@@ -206,13 +235,17 @@ jobs:
             mkdir -p "$DEST"
 
             PKG_CONFIG="$GOPATH/bin/pkg-config" go build \
-              -tags assets \
+              -tags osusergo,netgo,static_build,assets \
               -buildmode pie \
               -ldflags "-s -w -X main.version=dev -X main.commit=$(git rev-parse --short HEAD) -X main.date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
               -o "${DEST}/" \
               ./cmd/influxd/
       - store_artifacts:
           path: dist
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
 
   test-linux:
     parameters:
