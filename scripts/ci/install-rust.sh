@@ -20,6 +20,14 @@ function install_linux_target () {
 
 function install_windows_target () {
     ${RUSTUP} target add x86_64-pc-windows-gnu
+
+    # Cargo's built-in support for fetching dependencies from GitHub requires
+    # an ssh agent to be set up, which doesn't work on Circle's Windows executors.
+    # See https://github.com/rust-lang/cargo/issues/1851#issuecomment-450130685
+    cat <<EOF > ~/.cargo/config
+[net]
+git-fetch-with-cli = true
+EOF
 }
 
 function main () {
