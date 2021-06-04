@@ -68,12 +68,14 @@ commands:
             ./scripts/ci/install-go.sh ${HOME}/.tools
             echo 'export PATH=${HOME}/.tools/go/bin:${PATH}' >> $BASH_ENV
       - run:
-          name: Set GOPATH
+          name: Set GOPATH and GOCACHE
           command: |
             GOPATH=${HOME}/go
             echo "export GOPATH=${GOPATH}" >> $BASH_ENV
             mkdir -p ${GOPATH}/bin
             echo 'export PATH=${GOPATH}/bin:${PATH}' >> $BASH_ENV
+            mkdir -p ${HOME}/.cache
+            echo 'export GOCACHE=${HOME}/.cache' >> $BASH_ENV
       - run:
           name: Install Rust toolchain
           command: |
