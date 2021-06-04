@@ -19,6 +19,7 @@ import (
 	platform "github.com/influxdata/influxdb/v2"
 	"github.com/influxdata/influxdb/v2/authorization"
 	"github.com/influxdata/influxdb/v2/authorizer"
+	"github.com/influxdata/influxdb/v2/backup"
 	"github.com/influxdata/influxdb/v2/bolt"
 	"github.com/influxdata/influxdb/v2/checks"
 	"github.com/influxdata/influxdb/v2/chronograf/server"
@@ -43,7 +44,7 @@ import (
 	"github.com/influxdata/influxdb/v2/kv/migration/all"
 	"github.com/influxdata/influxdb/v2/label"
 	"github.com/influxdata/influxdb/v2/nats"
-	notebookSvc "github.com/influxdata/influxdb/v2/notebooks/service"
+	"github.com/influxdata/influxdb/v2/notebooks"
 	notebookTransport "github.com/influxdata/influxdb/v2/notebooks/transport"
 	endpointservice "github.com/influxdata/influxdb/v2/notification/endpoint/service"
 	ruleservice "github.com/influxdata/influxdb/v2/notification/rule/service"
@@ -704,6 +705,8 @@ func (m *Launcher) run(ctx context.Context, opts *InfluxdOpts) (err error) {
 	ts.BucketService = storage.NewBucketService(m.log, ts.BucketService, m.engine)
 	ts.BucketService = dbrp.NewBucketService(m.log, ts.BucketService, dbrpSvc)
 
+	bucketManifestWriter := backup.NewBucketManifestWriter(ts, metaClient)
+
 	onboardingLogger := m.log.With(zap.String("handler", "onboard"))
 	onboardOpts := []tenant.OnboardServiceOptionFn{tenant.WithOnboardingLogger(onboardingLogger)}
 	if opts.TestingAlwaysAllowSetup {
@@ -771,12 +774,14 @@ func (m *Launcher) run(ctx context.Context, opts *InfluxdOpts) (err error) {
 			BucketFinder:  ts.BucketService,
 			LogBucketName: platform.MonitoringSystemBucketName,
 		},
-		DeleteService:          deleteService,
-		BackupService:          backupService,
-		RestoreService:         restoreService,
-		AuthorizationService:   authSvc,
-		AuthorizationV1Service: authSvcV1,
-		PasswordV1Service:      passwordV1,
+		DeleteService:           deleteService,
+		BackupService:           backupService,
+		SqlBackupRestoreService: m.sqlStore,
+		BucketManifestWriter:    bucketManifestWriter,
+		RestoreService:          restoreService,
+		AuthorizationService:    authSvc,
+		AuthorizationV1Service:  authSvcV1,
+		PasswordV1Service:       passwordV1,
 		AuthorizerV1: &authv1.Authorizer{
 			AuthV1:   authSvcV1,
 			AuthV2:   authSvc,
@@ -940,11 +945,10 @@ func (m *Launcher) run(ctx context.Context, opts *InfluxdOpts) (err error) {
 		)
 	}
 
-	notebookSvc, err := notebookSvc.NewService()
-	if err != nil {
-		m.log.Error("Failed to initialize notebook service", zap.Error(err))
-		return err
-	}
+	notebookSvc := notebooks.NewService(
+		m.log.With(zap.String("service", "notebooks")),
+		m.sqlStore,
+	)
 	notebookServer := notebookTransport.NewNotebookHandler(
 		m.log.With(zap.String("handler", "notebooks")),
 		authorizer.NewNotebookService(notebookSvc),
