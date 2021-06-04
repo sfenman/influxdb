@@ -7,6 +7,7 @@ function setup_linux () {
         bzr \
         clang \
         libprotobuf-dev \
+        make \
         musl-tools \
         pkg-config \
         protobuf-compiler
