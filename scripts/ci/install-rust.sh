@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+declare -r RUST_VERSION=1.52.0
 declare -r RUSTUP=${HOME}/.cargo/bin/rustup
 
 function install_linux_target () {
@@ -24,15 +25,19 @@ function install_windows_target () {
     # Cargo's built-in support for fetching dependencies from GitHub requires
     # an ssh agent to be set up, which doesn't work on Circle's Windows executors.
     # See https://github.com/rust-lang/cargo/issues/1851#issuecomment-450130685
-    cat <<EOF > ~/.cargo/config
+    cat <<EOF >> ~/.cargo/config
 [net]
 git-fetch-with-cli = true
 EOF
 }
 
 function main () {
-    curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+    curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y
     ${RUSTUP} --version
+
+    cat <<EOF > ~/.cargo/config
+build.incremental = false
+EOF
 
     case $(uname) in
         Linux)
