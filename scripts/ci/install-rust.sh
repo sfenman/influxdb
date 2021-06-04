@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-declare -r RUST_VERSION=1.52.0
+declare -r RUST_VERSION=1.52.1
 declare -r RUSTUP=${HOME}/.cargo/bin/rustup
 
 function install_linux_target () {
@@ -34,10 +34,6 @@ EOF
 function main () {
     curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y
     ${RUSTUP} --version
-
-    cat <<EOF > ~/.cargo/config
-build.incremental = false
-EOF
 
     case $(uname) in
         Linux)
