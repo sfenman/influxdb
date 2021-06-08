@@ -46,10 +46,10 @@ require (
 	github.com/hashicorp/vault/api v1.0.2
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/influxdata/cron v0.0.0-20191203200038-ded12750aac6
-	github.com/influxdata/flux v0.117.2-0.20210607195529-e3bad65378fe
+	github.com/influxdata/flux v0.117.4-0.20210608201148-3b8ed2925615
 	github.com/influxdata/httprouter v1.3.1-0.20191122104820-ee83e2772f69
 	github.com/influxdata/influxql v0.0.0-20180925231337-1cbfca8e56b6
-	github.com/influxdata/pkg-config v0.2.8-0.20210603203025-0d962241291c
+	github.com/influxdata/pkg-config v0.2.8-0.20210608200742-e5be1a0d54be
 	github.com/influxdata/usage-client v0.0.0-20160829180054-6d3895376368
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jmoiron/sqlx v1.3.4
@@ -124,6 +124,3 @@ require (
 replace github.com/apache/arrow/go/arrow v0.0.0-20191024131854-af6fa24be0db => github.com/influxdata/arrow/go/arrow v0.0.0-20200917142114-986e413c1705
 
 replace github.com/nats-io/nats-streaming-server v0.11.2 => github.com/influxdata/nats-streaming-server v0.11.3-0.20201112040610-c277f7560803
-
-replace github.com/influxdata/flux v0.117.2-0.20210607195529-e3bad65378fe => ../flux
-replace github.com/influxdata/pkg-config v0.2.8-0.20210603203025-0d962241291c => ../pkg-config
