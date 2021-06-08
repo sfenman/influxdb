@@ -39,10 +39,12 @@ function setup_windows () {
         bzr \
         llvm \
         make \
-        mingw \
         pkgconfiglite \
         protoc \
         wget
+
+    # rustc depends on a version of libgcc_eh that isn't present in the latest mingw.
+    choco install mingw --version=8.1.0
 }
 
 function main () {
