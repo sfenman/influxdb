@@ -30,7 +30,7 @@ function build_mac () {
 }
 
 function build_windows () {
-    PKG_CONFIG=$(which pkg-config) CC=x86_64-w64-mingw32-gcc go build \
+    PKG_CONFIG=$(which pkg-config) CC=x86_64-w64-mingw32-gcc go build -x \
         -tags assets \
         -buildmode exe \
         -ldflags "-s -w -X main.version=dev -X main.commit=${commit} -X main.date=${build_date}" \
