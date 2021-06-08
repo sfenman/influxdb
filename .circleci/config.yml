@@ -131,6 +131,7 @@ workflows:
             branches:
               only:
                 - "1.8"
+                - "perftest-improvement-1.8"
   aws_destroy_daily:
     triggers:
       - schedule:
