@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-declare -r GO_VERSION=1.15.12
+declare -r GO_VERSION=1.16.5
 
 function install_go_linux () {
     ARCHIVE=go${GO_VERSION}.linux-$(dpkg --print-architecture).tar.gz
