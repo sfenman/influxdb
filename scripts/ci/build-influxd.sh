@@ -30,7 +30,9 @@ function build_mac () {
 }
 
 function build_windows () {
-    PKG_CONFIG=$(which pkg-config) CC=x86_64-w64-mingw32-gcc go build -x \
+    local -r commit=$(git rev-parse --short HEAD)
+    local -r build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+    PKG_CONFIG=$(which pkg-config) CC=x86_64-w64-mingw32-gcc go build \
         -tags assets \
         -buildmode exe \
         -ldflags "-s -w -X main.version=dev -X main.commit=${commit} -X main.date=${build_date}" \
