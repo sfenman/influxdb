@@ -38,12 +38,24 @@ git-fetch-with-cli = true
 EOF
 }
 
+function sha256check () {
+    case $(uname) in
+        Darwin)
+            echo "$1  $2" | shasum -a 256 --check -
+            ;;
+        *)
+            echo "$1  $2" | sha256sum --check --
+            ;;
+    esac
+}
+
 function main () {
     # Download rustup script
     curl --proto '=https' --tlsv1.2 -sSf \
         https://raw.githubusercontent.com/rust-lang/rustup/${RUSTUP_VERSION}/rustup-init.sh -O
+
     # Verify checksum of rustup script. Exit with error if check fails.
-    echo "${RUSTUP_SHA} rustup-init.sh" | sha256sum --check -- || { echo "Checksum problem!"; exit 1; }
+    sha256check ${RUSTUP_SHA} rustup-init.sh || { echo "Checksum problem!"; exit 1; }
     sh rustup-init.sh --default-toolchain ${RUST_VERSION} -y
     ${RUSTUP} --version
 
