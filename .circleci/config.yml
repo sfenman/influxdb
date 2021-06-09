@@ -5,28 +5,16 @@ executors:
     machine:
       image: ubuntu-2004:202104-01
     resource_class: large
-    environment:
-      GO111MODULE: "on"
-      GO_VERSION: 1.15.12
-      RUST_TARGET: x86_64-unknown-linux-musl
 
   linux-arm64:
     machine:
       image: ubuntu-2004:202104-01
     resource_class: arm.large
-    environment:
-      GO111MODULE: "on"
-      GO_VERSION: 1.15.12
-      RUST_TARGET: aarch64-unknown-linux-musl
-      NOASM: 1
 
   mac:
     macos:
       xcode: 12.4.0
     resource_class: medium
-    environment:
-      GO111MODULE: "on"
-      GO_VERSION: 1.15.12
     shell: /bin/bash -eo pipefail
 
   windows:
