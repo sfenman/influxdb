@@ -2,6 +2,13 @@
 set -eo pipefail
 
 declare -r RUST_VERSION=1.52.1
+# For security, we specify a particular rustup version and a SHA256 hash, computed
+# ourselves and hardcoded here. When updating `RUSTUP_VERSION`:
+#   1. Download the new rustup script from https://github.com/rust-lang/rustup/releases.
+#   2. Audit the script and changes to it. You might want to grep for strange URLs...
+#   3. Update `RUSTUP_SHA` with the result of running `sha256sum rustup-init.sh`.
+declare -r RUSTUP_VERSION=1.24.2
+declare -r RUSTUP_SHA=40229562d4fa60e102646644e473575bae22ff56c3a706898a47d7241c9c031e
 declare -r RUSTUP=${HOME}/.cargo/bin/rustup
 
 function install_linux_target () {
@@ -32,7 +39,12 @@ EOF
 }
 
 function main () {
-    curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y
+    # Download rustup script
+    curl --proto '=https' --tlsv1.2 -sSf \
+        https://raw.githubusercontent.com/rust-lang/rustup/${RUSTUP_VERSION}/rustup-init.sh -O
+    # Verify checksum of rustup script. Exit with error if check fails.
+    echo "${RUSTUP_SHA} rustup-init.sh" | sha256sum --check -- || { echo "Checksum problem!"; exit 1; }
+    sh rustup-init.sh --default-toolchain ${RUST_VERSION} -y
     ${RUSTUP} --version
 
     case $(uname) in
