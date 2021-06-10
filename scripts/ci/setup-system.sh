@@ -14,8 +14,6 @@ function setup_linux () {
 }
 
 function setup_mac () {
-    brew update
-
     # `python@3.9` comes pre-installed on the macOS executor, and it includes the `six` package.
     # The protobuf formula hasn't caught up yet, and depends on the standalone `six` formula.
     # Attempting to install the `six` formula alongside `python@3.9` causes a linking error because
@@ -27,7 +25,7 @@ function setup_mac () {
         rm ${six_file}
     fi
 
-    brew install \
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install \
         bazaar \
         pkg-config \
         protobuf \
