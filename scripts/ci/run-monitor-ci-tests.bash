@@ -94,7 +94,7 @@ if [[ -z "${OSS_SHA:-}" ]]; then
 else
 	# set the parameters for starting the monitor-ci pipeline from the influxdb repo
 	pipelineStartMsg="starting monitor-ci pipeline targeting monitor-ci branch ${MONITOR_CI_BRANCH} using OSS SHA ${OSS_SHA}"
-	reqData="{\"branch\":\"${MONITOR_CI_BRANCH}\", \"parameters\":{ \"oss-sha\":\"${OSS_SHA}\" }}"
+	reqData="{\"branch\":\"wb-test-timing-data\", \"parameters\":{ \"oss-sha\":\"${OSS_SHA}\" }}"
 fi
 
 printf "\n${pipelineStartMsg}\n"
