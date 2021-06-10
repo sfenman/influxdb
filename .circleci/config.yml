@@ -465,6 +465,12 @@ jobs:
           keys:
             - influxdb-gomod-sum-{{ checksum "go.sum" }}
       - install_core_deps
+      - run:
+          name: Upgrade Go
+          command: |
+            wget https://golang.org/dl/go1.16.3.linux-amd64.tar.gz
+            tar -C ${HOME} -xzf go1.16.3.linux-amd64.tar.gz
+            echo 'export PATH=${HOME}/go/bin:${PATH}' >> $BASH_ENV
       - run_goreleaser:
           publish_release: false
       - run:
