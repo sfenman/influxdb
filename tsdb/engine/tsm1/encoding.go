@@ -39,6 +39,7 @@ func init() {
 		timeEncoderPool, timeDecoderPool,
 		integerEncoderPool, integerDecoderPool,
 		floatDecoderPool, floatDecoderPool,
+		multiFloatEncoderPool, multiFloatDecoderPool,
 		stringEncoderPool, stringEncoderPool,
 		booleanEncoderPool, booleanDecoderPool,
 	} {
@@ -67,6 +68,9 @@ var (
 	floatEncoderPool = pool.NewGeneric(runtime.NumCPU(), func(sz int) interface{} {
 		return NewFloatEncoder()
 	})
+	multiFloatEncoderPool = pool.NewGeneric(runtime.NumCPU(), func(sz int) interface{} {
+		return NewMultiFloatEncoder()
+	})
 	stringEncoderPool = pool.NewGeneric(runtime.NumCPU(), func(sz int) interface{} {
 		return NewStringEncoder(sz)
 	})
@@ -84,6 +88,9 @@ var (
 	})
 	floatDecoderPool = pool.NewGeneric(runtime.NumCPU(), func(sz int) interface{} {
 		return &FloatDecoder{}
+	})
+	multiFloatDecoderPool = pool.NewGeneric(runtime.NumCPU(), func(sz int) interface{} {
+		return &MultiFloatDecoder()
 	})
 	stringDecoderPool = pool.NewGeneric(runtime.NumCPU(), func(sz int) interface{} {
 		return &StringDecoder{}
@@ -186,6 +193,8 @@ func (a Values) Encode(buf []byte) ([]byte, error) {
 	switch a[0].(type) {
 	case FloatValue:
 		return encodeFloatBlock(buf, a)
+	case MultiFloatValue:
+		return encodeMultiFloatBlock(buf, a)
 	case IntegerValue:
 		return encodeIntegerBlock(buf, a)
 	case UnsignedValue:
@@ -316,6 +325,142 @@ func DecodeBlock(block []byte, vals []Value) ([]Value, error) {
 	default:
 		return nil, fmt.Errorf("unknown block type: %d", blockType)
 	}
+}
+
+type MultiFloatValue struct {
+	unixnano int64
+	value    float64
+}
+
+// UnixNano returns the timestamp of the value.
+func (v MultiFloatValue) UnixNano() int64 {
+	return v.unixnano
+}
+
+// Value returns the underlying float64 value.
+func (v MultiFloatValue) Value() interface{} {
+	return v.value
+}
+
+// Size returns the number of bytes necessary to represent the value and its timestamp.
+func (v MultiFloatValue) Size() int {
+	return 16
+}
+
+// String returns the string representation of the value and its timestamp.
+func (v MultiFloatValue) String() string {
+	return fmt.Sprintf("%v %v", time.Unix(0, v.unixnano), v.value)
+}
+
+func (v MultiFloatValue) RawValue() float64 { return v.value }
+
+func encodeMultiFloatBlock(buf []byte, values []Value) ([]byte, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+
+	// A float block is encoded using different compression strategies
+	// for timestamps and values.
+
+	// Encode values using Gorilla float compression
+	venc := getFloatEncoder(len(values))
+
+	// Encode timestamps using an adaptive encoder that uses delta-encoding,
+	// frame-or-reference and run length encoding.
+	tsenc := getTimeEncoder(len(values))
+
+	b, err := encodeFloatBlockUsing(buf, values, tsenc, venc)
+
+	putTimeEncoder(tsenc)
+	putFloatEncoder(venc)
+
+	return b, err
+}
+
+func encodeMultiFloatBlockUsing(buf []byte, values []Value, tsenc TimeEncoder, venc *FloatEncoder) ([]byte, error) {
+	tsenc.Reset()
+	venc.Reset()
+
+	for _, v := range values {
+		vv := v.(FloatValue)
+		tsenc.Write(vv.unixnano)
+		venc.Write(vv.value)
+	}
+	venc.Flush()
+
+	// Encoded timestamp values
+	tb, err := tsenc.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	// Encoded float values
+	vb, err := venc.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	// Prepend the first timestamp of the block in the first 8 bytes and the block
+	// in the next byte, followed by the block
+	return packBlock(buf, BlockFloat64, tb, vb), nil
+}
+
+// DecodeFloatBlock decodes the float block from the byte slice
+// and appends the float values to a.
+func DecodeMultiFloatBlock(block []byte, a *[]FloatValue) ([]FloatValue, error) {
+	// Block type is the next block, make sure we actually have a float block
+	blockType := block[0]
+	if blockType != BlockFloat64 {
+		return nil, fmt.Errorf("invalid block type: exp %d, got %d", BlockFloat64, blockType)
+	}
+	block = block[1:]
+
+	tb, vb, err := unpackBlock(block)
+	if err != nil {
+		return nil, err
+	}
+
+	sz := CountTimestamps(tb)
+
+	if cap(*a) < sz {
+		*a = make([]FloatValue, sz)
+	} else {
+		*a = (*a)[:sz]
+	}
+
+	tdec := timeDecoderPool.Get(0).(*TimeDecoder)
+	vdec := floatDecoderPool.Get(0).(*FloatDecoder)
+
+	var i int
+	err = func(a []FloatValue) error {
+		// Setup our timestamp and value decoders
+		tdec.Init(tb)
+		err = vdec.SetBytes(vb)
+		if err != nil {
+			return err
+		}
+
+		// Decode both a timestamp and value
+		j := 0
+		for j < len(a) && tdec.Next() && vdec.Next() {
+			a[j] = FloatValue{unixnano: tdec.Read(), value: vdec.Values()}
+			j++
+		}
+		i = j
+
+		// Did timestamp decoding have an error?
+		err = tdec.Error()
+		if err != nil {
+			return err
+		}
+
+		// Did float decoding have an error?
+		return vdec.Error()
+	}(*a)
+
+	timeDecoderPool.Put(tdec)
+	floatDecoderPool.Put(vdec)
+
+	return (*a)[:i], err
 }
 
 // FloatValue represents a float64 value.
