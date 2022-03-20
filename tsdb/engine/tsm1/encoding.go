@@ -90,7 +90,7 @@ var (
 		return &FloatDecoder{}
 	})
 	multiFloatDecoderPool = pool.NewGeneric(runtime.NumCPU(), func(sz int) interface{} {
-		return &MultiFloatDecoder()
+		return &MultiFloatDecoder{}
 	})
 	stringDecoderPool = pool.NewGeneric(runtime.NumCPU(), func(sz int) interface{} {
 		return &StringDecoder{}
@@ -176,12 +176,13 @@ func (e EmptyValue) Size() int { return 0 }
 // String returns the empty string.
 func (e EmptyValue) String() string { return "" }
 
-func (EmptyValue) internalOnly()    {}
-func (StringValue) internalOnly()   {}
-func (IntegerValue) internalOnly()  {}
-func (UnsignedValue) internalOnly() {}
-func (BooleanValue) internalOnly()  {}
-func (FloatValue) internalOnly()    {}
+func (EmptyValue) internalOnly()      {}
+func (StringValue) internalOnly()     {}
+func (IntegerValue) internalOnly()    {}
+func (UnsignedValue) internalOnly()   {}
+func (BooleanValue) internalOnly()    {}
+func (FloatValue) internalOnly()      {}
+func (MultiFloatValue) internalOnly() {}
 
 // Encode converts the values to a byte slice.  If there are no values,
 // this function panics.
@@ -191,9 +192,9 @@ func (a Values) Encode(buf []byte) ([]byte, error) {
 	}
 
 	switch a[0].(type) {
+	//case FloatValue:
+	//	return encodeFloatBlock(buf, a)
 	case FloatValue:
-		return encodeFloatBlock(buf, a)
-	case MultiFloatValue:
 		return encodeMultiFloatBlock(buf, a)
 	case IntegerValue:
 		return encodeIntegerBlock(buf, a)

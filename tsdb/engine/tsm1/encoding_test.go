@@ -81,6 +81,30 @@ func TestEncoding_FloatBlock_SimilarFloats(t *testing.T) {
 	}
 }
 
+func TestEncoding_MultiFloatBlock(t *testing.T) {
+	valueCount := 1000
+	times := getTimes(valueCount, 60, time.Second)
+	values := make([]tsm1.Value, len(times))
+	for i, t := range times {
+		values[i] = tsm1.NewValue(t, float64(i))
+	}
+
+	b, err := tsm1.Values(values).Encode(nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var decodedValues []tsm1.Value
+	decodedValues, err = tsm1.DecodeBlock(b, decodedValues)
+	if err != nil {
+		t.Fatalf("unexpected error decoding block: %v", err)
+	}
+
+	if !reflect.DeepEqual(decodedValues, values) {
+		t.Fatalf("unexpected results:\n\tgot: %s\n\texp: %s\n", spew.Sdump(decodedValues), spew.Sdump(values))
+	}
+}
+
 func TestEncoding_IntBlock_Basic(t *testing.T) {
 	valueCount := 1000
 	times := getTimes(valueCount, 60, time.Second)
